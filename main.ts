@@ -15,10 +15,9 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		this.getExtension()
 
-
 		this.addCommand({
 			id: 'sample-editor-command',
-			name: 'Sample editor command',
+			name: 'Format Swift code blocks in this note',
 			editorCallback: () => {
 				this.getCodeBlocks()
 			}
@@ -64,7 +63,7 @@ export default class MyPlugin extends Plugin {
 			buffer.push(chunk)
 		});
 
-		return new Promise((resolve, reject) => {
+		return new Promise((resolve) => {
 			sfmt.on('close', (code: any) => {
 				console.log(`closed stream with code ${code}`)
 				resolve(`${buffer.join('')}`)
@@ -81,11 +80,14 @@ export default class MyPlugin extends Plugin {
 		const editorView: EditorView = (view.editor as any).cm as EditorView;
 		let cursor = syntaxTree(editorView.state).cursor()
 
+		// Would use null, but TS still thinks its null even when we check.
 		var startNodePos: number = 0
 		var endNodePos: number = 0
 
+
+		// Find code blocks with the lang
+		// TODO: Filter to `swift`
 		cursor.iterate((node: SyntaxNodeRef) => {
-			// Find code blocks with the lang
 			if (node.name.contains("HyperMD-codeblock-begin")) {
 				startNodePos = node.node.from
 				return false
@@ -96,10 +98,11 @@ export default class MyPlugin extends Plugin {
 		})
 
 		if (startNodePos === 0 && endNodePos === 0) {
-			console.log("yikes no nodes")
+			new ErrorModal(this.app, "No code blocks found in this document.").open()
 			return
 		}
 
+		// Remove the backticks at start/end. Probably a nicer way to do this?
 		startNodePos += 3
 		endNodePos -= 3
 
@@ -117,15 +120,11 @@ export default class MyPlugin extends Plugin {
 		console.log(`start: ${startNodePos}`)
 		console.log(`end: ${endNodePos}`)
 
-		// console.log(startNode)
-		// return editor.getSelection()
-
 	}
 
 	getExtension() {
 
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-
 
 		this.getCodeBlocks()
 
@@ -133,48 +132,43 @@ export default class MyPlugin extends Plugin {
 			return "null view"
 		}
 
-		// const editorView: EditorView = (view.editor as any).cm as EditorView;
-
-
-		// this.registerEditorExtension(
-		// 	linter((editorView: EditorView) => {
-
-		// 		let diagnostics: Diagnostic[] = []
-		// 		let cursor = syntaxTree(editorView.state).cursor()
-		// 		cursor.iterate((node: any) => {
-
-		// 			// Find code blocks with the lang
-		// 			if (node.name.contains("HyperMD-codeblock-begin")) {
-		// 				console.log(node)
-		// 				diagnostics.push({
-		// 					from: cursor.from,
-		// 					to: cursor.to,
-		// 					severity: "warning",
-		// 					message: `${node}`,
-		// 					actions: []
-		// 				})
-		// 			} else if (node.name.contains("HyperMD-codeblock-end")) {
-		// 				console.log(node)
-		// 				diagnostics.push({
-		// 					from: cursor.from,
-		// 					to: cursor.to,
-		// 					severity: "warning",
-		// 					message: `${node}`,
-		// 					actions: []
-		// 				})
-		// 			}
-		// 		})
-
-		// 		return diagnostics
-		// 	}))
-
 		this.registerEditorExtension(lintGutter())
 	}
 
+	registerLintDiagnostics() {
+		this.registerEditorExtension(
+			linter((editorView: EditorView) => {
 
-	onunload() {
+				let diagnostics: Diagnostic[] = []
+				let cursor = syntaxTree(editorView.state).cursor()
+				cursor.iterate((node: any) => {
 
+					// TODO: Show swiftlint errors inline :)
+					if (node.name.contains("HyperMD-codeblock-begin")) {
+						console.log(node)
+						diagnostics.push({
+							from: cursor.from,
+							to: cursor.to,
+							severity: "warning",
+							message: `${node}`,
+							actions: []
+						})
+					} else if (node.name.contains("HyperMD-codeblock-end")) {
+						console.log(node)
+						diagnostics.push({
+							from: cursor.from,
+							to: cursor.to,
+							severity: "warning",
+							message: `${node}`,
+							actions: []
+						})
+					}
+				})
+
+				return diagnostics
+			}))
 	}
+
 }
 
 class ErrorModal extends Modal {
