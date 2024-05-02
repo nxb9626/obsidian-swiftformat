@@ -23,28 +23,45 @@ export default class MyPlugin extends Plugin {
 			id: 'sample-editor-command',
 			name: 'Sample editor command',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
+
+
 				const selection = editor.getSelection();
 
-
-				// const sfmt = `'${selection}' > swiftformat stdin --enable "all" --verbose --swiftversion "5.10" | echo`
-				// const test = `echo hello`
-				// const { stdout, stderr } = await exec(sfmt)
-				// console.log("stdout: ", stdout)
-				// console.log("stderr: ", stderr)
-
-
 				const root = '/opt/homebrew/bin/swiftformat'
-				const args = ['stdin', '--enable', 'all', '--verbose', '--swiftversion', '5.10'];
+				const args = [
+					'stdin',
+					'--quiet',
+					'--swiftversion',
+					'5.10',
+					'--emptybraces',
+					'linebreak',
+					'--wrapcollections',
+					'before-first',
+					'--wraparguments',
+					'before-first',
+				];
 				const options = {
 					'input': selection
 				}
 				var sfmt = child_process.spawn(root, args, options);
 
-				sfmt.stdout.on('data', (chunk: any) => {
-					console.log(`${chunk}`);
+				// Although .exec() is buffered for us,
+				// we'd have to escape everything we pass in. Boo.
+				var buffer: any[] = []
 
-					editor.replaceSelection(`${chunk}`)
+				sfmt.stderr.on('data', (chunk: any) => {
+					new ErrorModal(this.app, `${chunk}`).open()
+				})
+
+				sfmt.stdout.on('data', (chunk: any) => {
+					buffer.push(chunk)
 				});
+
+				sfmt.on('close', (code: any) => {
+					console.log(`closed stream with code ${code}`)
+					editor.replaceSelection(`${buffer.join('')}`)
+				})
+
 
 				sfmt.stdin.write(selection);
 				sfmt.stdin.end();
@@ -63,7 +80,7 @@ export default class MyPlugin extends Plugin {
 					// If checking is true, we're simply "checking" if the command can be run.
 					// If checking is false, then we want to actually perform the operation.
 					if (!checking) {
-						new SampleModal(this.app).open();
+						// new SampleModal(this.app).open();
 					}
 
 					// This command will only show up in Command Palette when the check function returns true
@@ -98,14 +115,11 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
+class ErrorModal extends Modal {
+	constructor(app: App, message: string) {
 		super(app);
-	}
-
-	onOpen() {
 		const { contentEl } = this;
-		contentEl.setText('Woah!');
+		contentEl.setText(message);
 	}
 
 	onClose() {
