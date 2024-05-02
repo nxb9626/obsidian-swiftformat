@@ -1,4 +1,10 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
+import { EditorView } from '@codemirror/view';
+import { syntaxTree } from '@codemirror/language';
+import { SyntaxNodeRef } from '@lezer/common';
+import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
+import { it } from 'node:test';
+
 
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
@@ -7,6 +13,8 @@ var child_process = require('child_process');
 export default class MyPlugin extends Plugin {
 
 	async onload() {
+		this.getExtension()
+
 
 		this.addCommand({
 			id: 'sample-editor-command',
@@ -14,7 +22,7 @@ export default class MyPlugin extends Plugin {
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 
 
-				const selection = editor.getCodeBlocks();
+				const selection = this.getCodeBlocks(editor);
 
 				const root = '/opt/homebrew/bin/swiftformat'
 				const args = [
@@ -57,6 +65,41 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 	}
+
+
+	getCodeBlocks(editor: Editor) {
+		return editor.getSelection()
+
+	}
+
+	getExtension() {
+
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+
+		if (view === null) {
+			return "null view"
+		}
+
+		const editorView: EditorView = (view.editor as any).cm as EditorView;
+
+
+		this.registerEditorExtension(
+			linter((editorView: EditorView) => {
+				let cursor = syntaxTree(editorView.state).cursor()
+				cursor.firstChild()
+
+				return [{
+					from: cursor.from,
+					to: cursor.to,
+					severity: "warning",
+					message: "blah",
+					actions: []
+				}]
+			}))
+
+		this.registerEditorExtension(lintGutter())
+	}
+
 
 	onunload() {
 
