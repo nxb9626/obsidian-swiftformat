@@ -1,11 +1,9 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
-var util = require('util');
+const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 var child_process = require('child_process');
 
-
-// Remember to rename these classes and interfaces!
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -21,48 +19,39 @@ export default class MyPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// this.addCommand({
-		// 	id: 'sample-editor-command',
-		// 	name: 'Sample editor command',
-		// 	editorCallback: async (editor: Editor, view: MarkdownView) => {
-		// 		const selection = editor.getSelection();
-
-		// 		// const { stdout, stderr } = await exec(`echo -n ${selection} | /opt/homebrew/bin/swiftformat stdin --enable "all" --verbose --swiftversion "5.10" | cat -`);
-		// 		const { stdout, stderr } = await exec(`cat - ${selection} | cat -`);
-		// 		console.log(`stdout: ${stdout}`);
-		// 		console.log(`stderr: ${stderr}`);
-		// 		console.log(`DID IT`)
-		// 		// editor.replaceSelection(result);
-		// 		// editor.replaceSelection('Sample Editor Command');
-		// 	}
-		// });
-
 		this.addCommand({
 			id: 'sample-editor-command',
 			name: 'Sample editor command',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selection = editor.getSelection();
 
-				// const { stdout, stderr } = await exec(`echo -n ${selection} | /opt/homebrew/bin/swiftformat stdin --enable "all" --verbose --swiftversion "5.10" | cat -`);
 
-				var sfmt = child_process.spawn('cat', ['/dev/stdin']);
+				// const sfmt = `'${selection}' > swiftformat stdin --enable "all" --verbose --swiftversion "5.10" | echo`
+				// const test = `echo hello`
+				// const { stdout, stderr } = await exec(sfmt)
+				// console.log("stdout: ", stdout)
+				// console.log("stderr: ", stderr)
 
+
+				const root = '/opt/homebrew/bin/swiftformat'
+				const args = ['stdin', '--enable', 'all', '--verbose', '--swiftversion', '5.10'];
+				const options = {
+					'input': selection
+				}
+				var sfmt = child_process.spawn(root, args, options);
+
+				sfmt.stdout.on('data', (chunk: any) => {
+					console.log(`${chunk}`);
+
+					editor.replaceSelection(`${chunk}`)
+				});
 
 				sfmt.stdin.write(selection);
 				sfmt.stdin.end();
-				
-				sfmt.stdout.on('data', (chunk: any) => {
-						console.log(chunk.toString);
-					});
-				
-				// console.log(`stdout: ${stdout}`);
-				// console.log(`stderr: ${stderr}`);
-				// editor.replaceSelection(result);
+
+
 			}
 		});
-
-
-
 
 		this.addCommand({
 			id: 'open-sample-modal-complex',
