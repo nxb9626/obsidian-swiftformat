@@ -14,7 +14,7 @@ export default class MyPlugin extends Plugin {
 
 	async onload() {
 		this.getExtension()
-
+		this.registerLintDiagnostics()
 		this.addCommand({
 			id: 'sample-editor-command',
 			name: 'Format Swift code blocks in this note',
@@ -84,7 +84,6 @@ export default class MyPlugin extends Plugin {
 		var startNodePos: number = 0
 		var endNodePos: number = 0
 
-
 		// Find code blocks with the lang
 		// TODO: Filter to `swift`
 		cursor.iterate((node: SyntaxNodeRef) => {
@@ -116,22 +115,10 @@ export default class MyPlugin extends Plugin {
 				insert: formatted
 			}
 		})
-
-		console.log(`start: ${startNodePos}`)
-		console.log(`end: ${endNodePos}`)
-
 	}
 
 	getExtension() {
-
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-
 		this.getCodeBlocks()
-
-		if (view === null) {
-			return "null view"
-		}
-
 		this.registerEditorExtension(lintGutter())
 	}
 
