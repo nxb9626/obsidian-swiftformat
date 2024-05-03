@@ -2,7 +2,7 @@
 ## obsidian-swiftformat
 
 
-<img src="./github/demo.gif" />
+<img src=".github/demo.gif" />
 
 A simple plugin command to run [swiftformat](https://github.com/nicklockwood/SwiftFormat) on all Swift code blocks in an Obsidian note.
 
