@@ -6,9 +6,7 @@ import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
 import { it } from 'node:test';
 
 
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
-var child_process = require('child_process');
+const child_process = require('child_process');
 
 export default class MyPlugin extends Plugin {
 
@@ -46,7 +44,7 @@ export default class MyPlugin extends Plugin {
 
   applyRustFormat(content: string): Promise<string> {
     // double check this, ~ might not be ideal
-    content = content.slice(4, content.length)
+    content = content.slice(5, content.length)
     const root = '/Users/noah/.cargo/bin/rustfmt'
     const args: [] = [];
     const options = {
@@ -56,23 +54,24 @@ export default class MyPlugin extends Plugin {
 
     // Although .exec() is buffered for us,
     // we'd have to escape everything we pass in. Boo.
-    let buffer: char[] = [..."rust\n"]
+    const buffer: string[] = [..."rust\n"]
 
     sfmt.stdin.write(content);
     sfmt.stdin.end();
 
-    sfmt.stderr.on('data', (chunk: any) => {
+    sfmt.stderr.on('data', (chunk: string) => {
       console.log(`${chunk}`)
       new ErrorModal(this.app, `${chunk}`).open()
+      buffer.push(content)
     })
 
-    sfmt.stdout.on('data', (chunk: any) => {
+    sfmt.stdout.on('data', (chunk: string) => {
       console.log(`${chunk}`)
       buffer.push(chunk)
     });
 
     return new Promise((resolve) => {
-      sfmt.on('close', (code: any) => {
+      sfmt.on('close', (code: number) => {
         console.log(`closed stream with code ${code}`)
         resolve(`${buffer.join('')}`)
       })
@@ -100,21 +99,21 @@ export default class MyPlugin extends Plugin {
 
     // Although .exec() is buffered for us,
     // we'd have to escape everything we pass in. Boo.
-    var buffer: any[] = []
+    const buffer: string[] = []
 
     sfmt.stdin.write(content);
     sfmt.stdin.end();
 
-    sfmt.stderr.on('data', (chunk: any) => {
+    sfmt.stderr.on('data', (chunk: string) => {
       new ErrorModal(this.app, `${chunk}`).open()
     })
 
-    sfmt.stdout.on('data', (chunk: any) => {
+    sfmt.stdout.on('data', (chunk: string) => {
       buffer.push(chunk)
     });
 
     return new Promise((resolve) => {
-      sfmt.on('close', (code: any) => {
+      sfmt.on('close', (code: number) => {
         console.log(`closed stream with code ${code}`)
         resolve(`${buffer.join('')}`)
       })
